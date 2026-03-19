@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventConcierge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #ffffff; color: #111827; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        /* Minimalist spinner */
+        .spinner { border-right-color: transparent; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <header class="w-full border-b border-gray-100 py-4 px-6 md:px-12 flex justify-between items-center">
+        <h1 class="text-xl font-light tracking-wide text-gray-800">EventConcierge</h1>
+    </header>
+
+    <main class="flex-grow max-w-3xl w-full mx-auto p-6 md:p-12 mt-8">
+        
+        <section class="mb-16">
+            <h2 class="text-xl font-light text-gray-800 mb-6">Plan an Event</h2>
+            
+            <form id="eventForm" class="flex flex-col gap-6">
+                <div>
+                    <label for="queryInput" class="block text-sm text-gray-500 mb-2">Event Requirements</label>
+                    <input type="text" id="queryInput" 
+                        placeholder="e.g., A 10-person leadership retreat in the mountains for 3 days with a $4000 budget" 
+                        class="w-full border border-gray-200 rounded-md py-3 px-4 text-gray-800 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400 transition-all font-light" required>
+                </div>
+                
+                <button type="submit" id="submitBtn" class="bg-gray-50 border border-gray-200 text-gray-800 px-6 py-2 rounded-md hover:bg-gray-100 transition-colors w-fit text-sm font-medium flex items-center gap-2">
+                    Generate Proposal
+                    <div id="btnSpinner" class="hidden w-4 h-4 border-2 border-gray-400 rounded-full spinner"></div>
+                </button>
+            </form>
+        </section>
+
+        <section id="currentResult" class="mb-16 hidden fade-in">
+            </section>
+
+        <hr class="border-gray-100 mb-16">
+
+        <section>
+            <h2 class="text-xl font-light text-gray-800 mb-6">Previous Inquiries</h2>
+            <div id="historyList" class="flex flex-col gap-8">
+                </div>
+        </section>
+
+    </main>
+
+    <script>
+        const form = document.getElementById('eventForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const btnSpinner = document.getElementById('btnSpinner');
+        const currentResult = document.getElementById('currentResult');
+        const historyList = document.getElementById('historyList');
+
+        async function fetchHistory() {
+            try {
+                const res = await fetch('/generate-event/history');
+                const data = await res.json();
+                renderHistory(data);
+            } catch (err) {
+                console.error("Failed to load history");
+            }
+        }
+
+        function formatResultHTML(data, isHistory = false) {
+            // Mirrors the "Speed → 1.000x" aesthetic from your screenshot
+            return `
+                <div class="${isHistory ? 'pl-4 border-l-2 border-gray-100 hover:border-gray-300 transition-colors' : ''}">
+                    <div class="text-sm text-gray-400 mb-4 italic">"${data.userQuery || 'Recent Request'}"</div>
+                    
+                    <div class="font-mono text-sm text-gray-700 space-y-3">
+                        <p><span class="text-gray-400 mr-2">Venue</span> &rarr; <span class="font-medium text-gray-900">${data.venue_name}</span></p>
+                        <p><span class="text-gray-400 mr-2">Location</span> &rarr; ${data.location}</p>
+                        <p><span class="text-gray-400 mr-2">Cost</span> &rarr; ${data.estimated_cost}</p>
+                        <p class="leading-relaxed mt-4 text-gray-600 font-sans font-light">
+                            <span class="block text-gray-400 font-mono text-sm mb-1">Rationale &rarr;</span> 
+                            ${data.why_it_fits}
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderHistory(data) {
+            if (data.length === 0) {
+                historyList.innerHTML = `<p class="text-gray-400 font-light text-sm">No previous plans found.</p>`;
+                return;
+            }
+            historyList.innerHTML = data.map(event => formatResultHTML(event, true)).join('');
+        }
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const query = document.getElementById('queryInput').value;
+            
+            // UI Loading State
+            submitBtn.disabled = true;
+            btnSpinner.classList.remove('hidden');
+            submitBtn.classList.add('opacity-70');
+            currentResult.classList.add('hidden');
+
+            try {
+                // For testing grounding, optionally add lat/lng to this body
+                const res = await fetch('/generate-event', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+                
+                const data = await res.json();
+                
+                // Display Result
+                currentResult.innerHTML = formatResultHTML({ ...data, userQuery: query });
+                currentResult.classList.remove('hidden');
+                
+                // Refresh the list below
+                fetchHistory(); 
+                
+            } catch (err) {
+                alert("Something went wrong processing your request.");
+            } finally {
+                // Reset UI
+                submitBtn.disabled = false;
+                btnSpinner.classList.add('hidden');
+                submitBtn.classList.remove('opacity-70');
+            }
+        };
+
+        // Load data on start
+        fetchHistory();
+    </script>
+</body>
+</html>
