@@ -1,4 +1,4 @@
-# 🎯 EventConcierge
+# EventConcierge
 
 An AI-powered event planning assistant that suggests real-world venues using **Google Gemini** with live **Google Maps grounding**, and offers a multi-turn **conversational chat** powered by **LangChain** for iterative event refinement.
 
