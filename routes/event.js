@@ -25,7 +25,6 @@ router.post("/", async (req, res) => {
           }
         }
       },
-      // generationConfig: { responseMimeType: "application/json" }
     });
 
     const prompt = `

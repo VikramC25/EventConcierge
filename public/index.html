@@ -13,6 +13,28 @@
         /* Minimalist spinner */
         .spinner { border-right-color: transparent; animation: spin 1s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
+        /* Tab styling */
+        .tab-btn { transition: all 0.2s ease; }
+        .tab-btn.active { border-bottom: 2px solid #111827; color: #111827; }
+        .tab-btn:not(.active) { border-bottom: 2px solid transparent; color: #9ca3af; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        /* Chat styling */
+        .chat-container { height: 400px; overflow-y: auto; scroll-behavior: smooth; }
+        .chat-bubble { max-width: 85%; }
+        .chat-bubble.human { background-color: #f3f4f6; margin-left: auto; }
+        .chat-bubble.ai { background-color: #fafafa; border: 1px solid #e5e7eb; }
+        .session-item { transition: all 0.15s ease; }
+        .session-item:hover { background-color: #f9fafb; }
+        .session-item.active { background-color: #f3f4f6; border-left: 2px solid #111827; }
+        /* Typing indicator */
+        .typing-dot { animation: typingBounce 1.4s infinite ease-in-out both; }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col">
@@ -21,40 +43,100 @@
         <h1 class="text-xl font-light tracking-wide text-gray-800">EventConcierge</h1>
     </header>
 
-    <main class="flex-grow max-w-3xl w-full mx-auto p-6 md:p-12 mt-8">
-        
-        <section class="mb-16">
-            <h2 class="text-xl font-light text-gray-800 mb-6">Plan an Event</h2>
-            
-            <form id="eventForm" class="flex flex-col gap-6">
-                <div>
-                    <label for="queryInput" class="block text-sm text-gray-500 mb-2">Event Requirements</label>
-                    <input type="text" id="queryInput" 
-                        placeholder="e.g., A 10-person leadership retreat in the mountains for 3 days with a $4000 budget" 
-                        class="w-full border border-gray-200 rounded-md py-3 px-4 text-gray-800 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400 transition-all font-light" required>
-                </div>
-                
-                <button type="submit" id="submitBtn" class="bg-gray-50 border border-gray-200 text-gray-800 px-6 py-2 rounded-md hover:bg-gray-100 transition-colors w-fit text-sm font-medium flex items-center gap-2">
-                    Generate Proposal
-                    <div id="btnSpinner" class="hidden w-4 h-4 border-2 border-gray-400 rounded-full spinner"></div>
-                </button>
-            </form>
-        </section>
+    <!-- Tab Navigation -->
+    <nav class="max-w-4xl w-full mx-auto px-6 md:px-12 pt-6 flex gap-6">
+        <button class="tab-btn active pb-2 text-sm font-medium" data-tab="planner">Quick Plan</button>
+        <button class="tab-btn pb-2 text-sm font-medium" data-tab="chat">Chat Assistant</button>
+    </nav>
 
-        <section id="currentResult" class="mb-16 hidden fade-in">
+    <main class="flex-grow max-w-4xl w-full mx-auto p-6 md:p-12 mt-2">
+        
+        <!-- ==================== TAB 1: Quick Plan (Original) ==================== -->
+        <div class="tab-content active" id="tab-planner">
+            <section class="mb-16">
+                <h2 class="text-xl font-light text-gray-800 mb-6">Plan an Event</h2>
+                
+                <form id="eventForm" class="flex flex-col gap-6">
+                    <div>
+                        <label for="queryInput" class="block text-sm text-gray-500 mb-2">Event Requirements</label>
+                        <input type="text" id="queryInput" 
+                            placeholder="e.g., A 10-person leadership retreat in the mountains for 3 days with a $4000 budget" 
+                            class="w-full border border-gray-200 rounded-md py-3 px-4 text-gray-800 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400 transition-all font-light" required>
+                    </div>
+                    
+                    <button type="submit" id="submitBtn" class="bg-gray-50 border border-gray-200 text-gray-800 px-6 py-2 rounded-md hover:bg-gray-100 transition-colors w-fit text-sm font-medium flex items-center gap-2">
+                        Generate Proposal
+                        <div id="btnSpinner" class="hidden w-4 h-4 border-2 border-gray-400 rounded-full spinner"></div>
+                    </button>
+                </form>
             </section>
 
-        <hr class="border-gray-100 mb-16">
+            <section id="currentResult" class="mb-16 hidden fade-in">
+                </section>
 
-        <section>
-            <h2 class="text-xl font-light text-gray-800 mb-6">Previous Inquiries</h2>
-            <div id="historyList" class="flex flex-col gap-8">
+            <hr class="border-gray-100 mb-16">
+
+            <section>
+                <h2 class="text-xl font-light text-gray-800 mb-6">Previous Inquiries</h2>
+                <div id="historyList" class="flex flex-col gap-8">
+                    </div>
+            </section>
+        </div>
+
+        <!-- ==================== TAB 2: Chat Assistant (LangChain) ==================== -->
+        <div class="tab-content" id="tab-chat">
+            <div class="flex gap-6 h-full">
+                
+                <!-- Sessions Sidebar -->
+                <div class="w-48 flex-shrink-0">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-sm font-medium text-gray-500">Sessions</h3>
+                        <button id="newChatBtn" class="text-xs text-gray-400 hover:text-gray-800 transition-colors border border-gray-200 rounded px-2 py-1 hover:bg-gray-50">+ New</button>
+                    </div>
+                    <div id="sessionsList" class="flex flex-col gap-1 text-sm">
+                        <p class="text-gray-400 text-xs">No sessions yet</p>
+                    </div>
                 </div>
-        </section>
+
+                <!-- Chat Area -->
+                <div class="flex-grow flex flex-col border border-gray-100 rounded-lg">
+                    <!-- Chat Messages -->
+                    <div id="chatMessages" class="chat-container p-4 flex flex-col gap-3">
+                        <div class="text-center text-gray-400 text-sm py-12">
+                            Start a conversation about your event.<br>
+                            <span class="text-xs text-gray-300 mt-1 block">Try: "Find me a birthday party venue in South Delhi"</span>
+                        </div>
+                    </div>
+
+                    <!-- Chat Input -->
+                    <div class="border-t border-gray-100 p-3 flex gap-2">
+                        <input type="text" id="chatInput" 
+                            placeholder="Type your message..." 
+                            class="flex-grow border border-gray-200 rounded-md py-2 px-3 text-sm text-gray-800 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-400 transition-all font-light">
+                        <button id="sendBtn" class="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors text-sm font-medium flex items-center gap-2">
+                            Send
+                            <div id="chatSpinner" class="hidden w-3 h-3 border-2 border-white rounded-full spinner"></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </main>
 
     <script>
+        // ==================== Tab Switching ====================
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                tabBtns.forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+            });
+        });
+
+        // ==================== Quick Plan (Original Logic) ====================
         const form = document.getElementById('eventForm');
         const submitBtn = document.getElementById('submitBtn');
         const btnSpinner = document.getElementById('btnSpinner');
@@ -72,7 +154,6 @@
         }
 
         function formatResultHTML(data, isHistory = false) {
-            // Mirrors the "Speed → 1.000x" aesthetic from your screenshot
             return `
                 <div class="${isHistory ? 'pl-4 border-l-2 border-gray-100 hover:border-gray-300 transition-colors' : ''}">
                     <div class="text-sm text-gray-400 mb-4 italic">"${data.userQuery || 'Recent Request'}"</div>
@@ -102,14 +183,12 @@
             e.preventDefault();
             const query = document.getElementById('queryInput').value;
             
-            // UI Loading State
             submitBtn.disabled = true;
             btnSpinner.classList.remove('hidden');
             submitBtn.classList.add('opacity-70');
             currentResult.classList.add('hidden');
 
             try {
-                // For testing grounding, optionally add lat/lng to this body
                 const res = await fetch('/generate-event', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -117,26 +196,202 @@
                 });
                 
                 const data = await res.json();
-                
-                // Display Result
                 currentResult.innerHTML = formatResultHTML({ ...data, userQuery: query });
                 currentResult.classList.remove('hidden');
-                
-                // Refresh the list below
                 fetchHistory(); 
                 
             } catch (err) {
                 alert("Something went wrong processing your request.");
             } finally {
-                // Reset UI
                 submitBtn.disabled = false;
                 btnSpinner.classList.add('hidden');
                 submitBtn.classList.remove('opacity-70');
             }
         };
 
-        // Load data on start
+        // ==================== Chat Assistant (LangChain) ====================
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatSpinner = document.getElementById('chatSpinner');
+        const newChatBtn = document.getElementById('newChatBtn');
+        const sessionsList = document.getElementById('sessionsList');
+
+        let currentSessionId = null;
+
+        // Add a message bubble to the chat
+        function addChatBubble(content, role) {
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble ${role} rounded-lg px-4 py-3 text-sm fade-in`;
+            
+            if (role === 'human') {
+                bubble.innerHTML = `<p class="text-gray-700">${escapeHtml(content)}</p>`;
+            } else {
+                // AI messages — render with basic formatting
+                bubble.innerHTML = `
+                    <div class="text-xs text-gray-400 mb-1 font-medium">EventConcierge</div>
+                    <div class="text-gray-700 leading-relaxed whitespace-pre-wrap">${formatAIResponse(content)}</div>
+                `;
+            }
+
+            chatMessages.appendChild(bubble);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Show typing indicator
+        function showTyping() {
+            const typing = document.createElement('div');
+            typing.id = 'typingIndicator';
+            typing.className = 'chat-bubble ai rounded-lg px-4 py-3 flex items-center gap-1';
+            typing.innerHTML = `
+                <div class="typing-dot w-2 h-2 bg-gray-400 rounded-full"></div>
+                <div class="typing-dot w-2 h-2 bg-gray-400 rounded-full"></div>
+                <div class="typing-dot w-2 h-2 bg-gray-400 rounded-full"></div>
+            `;
+            chatMessages.appendChild(typing);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function hideTyping() {
+            const el = document.getElementById('typingIndicator');
+            if (el) el.remove();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatAIResponse(text) {
+            // Basic markdown-like formatting
+            return escapeHtml(text)
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>');
+        }
+
+        // Send a chat message
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            chatInput.value = '';
+            
+            // Clear the welcome message on first send
+            if (!currentSessionId && chatMessages.querySelector('.text-center')) {
+                chatMessages.innerHTML = '';
+            }
+
+            addChatBubble(message, 'human');
+
+            sendBtn.disabled = true;
+            chatSpinner.classList.remove('hidden');
+            showTyping();
+
+            try {
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message,
+                        sessionId: currentSessionId
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    hideTyping();
+                    currentSessionId = data.sessionId;
+                    addChatBubble(data.reply, 'ai');
+                    loadSessions(); // Refresh sidebar
+                } else {
+                    hideTyping();
+                    addChatBubble(`Error: ${data.details || data.error}`, 'ai');
+                }
+            } catch (err) {
+                hideTyping();
+                addChatBubble("Failed to connect to the server.", 'ai');
+            } finally {
+                sendBtn.disabled = false;
+                chatSpinner.classList.add('hidden');
+            }
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Start a new chat session
+        newChatBtn.addEventListener('click', () => {
+            currentSessionId = null;
+            chatMessages.innerHTML = `
+                <div class="text-center text-gray-400 text-sm py-12">
+                    Start a conversation about your event.<br>
+                    <span class="text-xs text-gray-300 mt-1 block">Try: "Find me a birthday party venue in South Delhi"</span>
+                </div>
+            `;
+            // Remove active state from session list
+            document.querySelectorAll('.session-item').forEach(s => s.classList.remove('active'));
+        });
+
+        // Load all sessions
+        async function loadSessions() {
+            try {
+                const res = await fetch('/chat/sessions');
+                const sessions = await res.json();
+                
+                if (sessions.length === 0) {
+                    sessionsList.innerHTML = '<p class="text-gray-400 text-xs">No sessions yet</p>';
+                    return;
+                }
+
+                sessionsList.innerHTML = sessions.map(s => `
+                    <div class="session-item rounded px-2 py-2 cursor-pointer ${s.sessionId === currentSessionId ? 'active' : ''}" 
+                         data-sid="${s.sessionId}">
+                        <div class="text-gray-700 text-xs truncate">${escapeHtml(s.title)}</div>
+                        <div class="text-gray-400 text-[10px] mt-0.5">${new Date(s.updatedAt).toLocaleDateString()}</div>
+                    </div>
+                `).join('');
+
+                // Click to load a session
+                document.querySelectorAll('.session-item').forEach(item => {
+                    item.addEventListener('click', () => loadConversation(item.dataset.sid));
+                });
+            } catch (err) {
+                console.error("Failed to load sessions");
+            }
+        }
+
+        // Load a specific conversation
+        async function loadConversation(sessionId) {
+            try {
+                const res = await fetch(`/chat/${sessionId}`);
+                const data = await res.json();
+
+                currentSessionId = sessionId;
+                chatMessages.innerHTML = '';
+
+                for (const msg of data.messages) {
+                    addChatBubble(msg.content, msg.role);
+                }
+
+                // Update active state in sidebar
+                document.querySelectorAll('.session-item').forEach(s => {
+                    s.classList.toggle('active', s.dataset.sid === sessionId);
+                });
+            } catch (err) {
+                console.error("Failed to load conversation");
+            }
+        }
+
+        // ==================== Init ====================
         fetchHistory();
+        loadSessions();
     </script>
 </body>
 </html>

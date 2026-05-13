@@ -2,6 +2,7 @@ import "dotenv/config"; // High-priority import: loads .env immediately
 import express from "express";
 import mongoose from "mongoose";
 import eventRoute from "./routes/event.js";
+import chatRoute from "./routes/chat.js";
 
 const app = express();
 
@@ -9,6 +10,7 @@ app.use(express.json());
 app.use(express.static("public"));
 
 app.use("/generate-event", eventRoute);
+app.use("/chat", chatRoute);
 
 const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/EventConcierge";
 
